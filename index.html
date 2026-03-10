@@ -3,6 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- Meta tags สำหรับทำให้เป็น Web App (ติดตั้งลงหน้าจอโฮมได้) -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#ffe4e8" id="themeColorMeta">
     <title>Nokia 3310 Ultimate Snake (5 Skins & 4 Modes)</title>
     <style>
         /* ระบบ CSS Variables สำหรับเปลี่ยนสกิน */
@@ -35,6 +40,9 @@
             font-family: Arial, sans-serif;
             touch-action: manipulation; 
             transition: background-color 0.3s;
+            /* ป้องกันการคลุมดำเลือกข้อความบนมือถือเวลาแตะรัวๆ */
+            user-select: none;
+            -webkit-user-select: none;
         }
 
         .nokia-body {
@@ -180,6 +188,7 @@
             font-weight: bold;
             cursor: pointer;
             user-select: none;
+            -webkit-tap-highlight-color: transparent; /* เอาแถบไฮไลต์เวลากดบนมือถือออก */
             transition: all 0.1s;
         }
         .nav-btn:active {
@@ -214,35 +223,34 @@
             box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
         }
 
-        /* ขยายปุ่มลูกศรขึ้น-ลง ให้ใหญ่ขึ้นเป็นวงรีเต็มพื้นที่ด้านขวา */
         .rocker-container {
             display: flex;
             flex-direction: column;
-            transform: rotate(25deg); /* เอียงขวาให้ขนานกับขอบเครื่องมากขึ้น */
-            margin-top: -15px; /* ขยับขึ้นให้สมดุล */
-            margin-right: -12px; /* ชิดขอบขวาให้เต็มพื้นที่ */
+            transform: rotate(25deg); 
+            margin-top: -15px; 
+            margin-right: -12px; 
         }
 
         .btn-up {
-            width: 100px; height: 65px; /* ขยายขนาดใหญ่สุดๆ */
-            border-radius: 50px 50px 10px 10px; /* โค้งบนเป็นครึ่งวงรี */
+            width: 100px; height: 65px; 
+            border-radius: 50px 50px 10px 10px; 
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            font-size: 28px; /* ขยายไอคอน */
+            font-size: 28px; 
             padding-bottom: 4px;
         }
         .btn-down {
-            width: 100px; height: 65px; /* ขยายขนาดใหญ่สุดๆ */
-            border-radius: 10px 10px 50px 50px; /* โค้งล่างเป็นครึ่งวงรี */
+            width: 100px; height: 65px; 
+            border-radius: 10px 10px 50px 50px; 
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            font-size: 28px; /* ขยายไอคอน */
+            font-size: 28px; 
             padding-top: 4px;
-            margin-top: 6px; /* เว้นช่องตรงกลางนิดหน่อยให้ดูเป็น 2 ปุ่ม */
+            margin-top: 6px; 
         }
         .turn-icon { font-size: 14px; color: var(--btn-text); margin-top: -4px; font-weight: bold; }
 
@@ -335,7 +343,8 @@
                     "--overlay-bg": "rgba(140, 184, 120, 0.95)",
                     "--overlay-text": "#172111"
                 },
-                pixel: "#172111"
+                pixel: "#172111",
+                themeColor: "#ffe4e8"
             },
             {
                 name: "CLASSIC", logo: "NOKIA",
@@ -357,7 +366,8 @@
                     "--overlay-bg": "rgba(140, 184, 120, 0.95)",
                     "--overlay-text": "#172111"
                 },
-                pixel: "#172111"
+                pixel: "#172111",
+                themeColor: "#e2e8f0"
             },
             {
                 name: "RETRO", logo: "GAME ♥",
@@ -379,7 +389,8 @@
                     "--overlay-bg": "rgba(155, 188, 15, 0.95)",
                     "--overlay-text": "#0f380f"
                 },
-                pixel: "#0f380f"
+                pixel: "#0f380f",
+                themeColor: "#e9e9e9"
             },
             {
                 name: "CYBER", logo: "NEON",
@@ -401,7 +412,8 @@
                     "--overlay-bg": "rgba(0, 0, 0, 0.9)",
                     "--overlay-text": "#0ff"
                 },
-                pixel: "#0ff"
+                pixel: "#0ff",
+                themeColor: "#0f0f13"
             },
             {
                 name: "OCEAN", logo: "NOKIA 🌊",
@@ -423,7 +435,8 @@
                     "--overlay-bg": "rgba(186, 230, 253, 0.95)",
                     "--overlay-text": "#082f49"
                 },
-                pixel: "#082f49"
+                pixel: "#082f49",
+                themeColor: "#e0f2fe"
             }
         ];
 
@@ -442,6 +455,8 @@
             for (const [key, value] of Object.entries(skin.css)) {
                 document.documentElement.style.setProperty(key, value);
             }
+            // อัปเดต Theme Color ของมือถือ
+            document.getElementById('themeColorMeta').setAttribute('content', skin.themeColor);
             
             // อัปเดตพิกเซลใน Canvas และวาดใหม่ทันที
             COLOR_PIXEL = skin.pixel;
@@ -465,28 +480,33 @@
             if (!audioCtx) {
                 audioCtx = new AudioContext();
             }
+            // ปลุก audio context ถ้ามันหลับอยู่
             if (audioCtx.state === 'suspended') {
                 audioCtx.resume();
             }
         }
 
-        // ปลดล็อคเสียงบนมือถือ (แก้ปัญหา iOS/Android ไม่เล่นเสียงจนกว่าจะมีการตอบสนอง)
+        // ฟังก์ชันปลดล็อคเสียงที่ถูกปรับปรุงให้แน่ใจว่าทำงานได้บนทุกเบราว์เซอร์
         function unlockAudio() {
             initAudio();
             if(audioCtx) {
-                // สร้างเสียงเงียบๆ เพื่อปลดล็อค context ทันทีที่แตะจอ
+                // สร้างคลื่นเสียงเงียบสั้นๆ แล้วเล่นทันทีที่สัมผัสจอ
                 const buffer = audioCtx.createBuffer(1, 1, 22050);
                 const source = audioCtx.createBufferSource();
                 source.buffer = buffer;
                 source.connect(audioCtx.destination);
                 source.start(0);
             }
-            // ปลดล็อคแล้วให้เอา listener ออก
-            document.removeEventListener('touchstart', unlockAudio);
-            document.removeEventListener('click', unlockAudio);
+            
+            // ถอด Event Listeners ออกหลังจากปลดล็อคสำเร็จครั้งแรก
+            const unlockEvents = ['touchstart', 'touchend', 'mousedown', 'keydown'];
+            unlockEvents.forEach(evt => document.removeEventListener(evt, unlockAudio));
         }
-        document.addEventListener('touchstart', unlockAudio, { once: true });
-        document.addEventListener('click', unlockAudio, { once: true });
+
+        // ดักจับทุก Event ที่แสดงว่าผู้ใช้กำลังใช้งานหน้าจอ เพื่อปลดล็อคเสียง
+        ['touchstart', 'touchend', 'mousedown', 'keydown'].forEach(evt => {
+            document.addEventListener(evt, unlockAudio, { once: true });
+        });
 
         function toggleSound() {
             soundEnabled = !soundEnabled;
@@ -494,9 +514,12 @@
             if (soundEnabled) playSound('key');
         }
 
-        // ปรับ Default Volume เป็น 0.5 เผื่อไว้
         function playTone(freq, type, duration, vol=0.5) {
             if (!audioCtx || !soundEnabled) return;
+            
+            // ปลุก audioContext ก่อนเล่นเสียงเสมอเผื่อมือถือตัดการเชื่อมต่อ
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
             const oscillator = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
             oscillator.type = type; 
@@ -512,25 +535,24 @@
         function playSound(action) {
             initAudio(); 
             if (!soundEnabled) return;
-            // ปรับเพิ่มความดัง (Volume Boost) ตรงตัวเลขตัวที่ 4 ในฟังก์ชัน playTone ให้ดังขึ้น
             switch(action) {
-                case 'key': playTone(1500, 'square', 0.05, 0.2); break; // เดิม 0.03
+                case 'key': playTone(1500, 'square', 0.05, 0.2); break; 
                 case 'eat': 
-                    playTone(1200, 'square', 0.1, 0.4); // เดิม 0.05
+                    playTone(1200, 'square', 0.1, 0.4); 
                     setTimeout(() => playTone(1800, 'square', 0.15, 0.4), 80);
                     break;
                 case 'die': 
-                    playTone(300, 'sawtooth', 0.2, 0.6); // เดิม 0.1
+                    playTone(300, 'sawtooth', 0.2, 0.6); 
                     setTimeout(() => playTone(250, 'sawtooth', 0.2, 0.6), 150);
                     setTimeout(() => playTone(200, 'sawtooth', 0.4, 0.6), 300);
                     break;
                 case 'start': 
-                    playTone(800, 'square', 0.1, 0.3); // เดิม 0.05
+                    playTone(800, 'square', 0.1, 0.3); 
                     setTimeout(() => playTone(1000, 'square', 0.1, 0.3), 100);
                     setTimeout(() => playTone(1200, 'square', 0.2, 0.3), 200);
                     break;
                 case 'levelup': 
-                    playTone(900, 'square', 0.1, 0.3); // เดิม 0.05
+                    playTone(900, 'square', 0.1, 0.3); 
                     setTimeout(() => playTone(1100, 'square', 0.1, 0.3), 100);
                     setTimeout(() => playTone(1300, 'square', 0.1, 0.3), 200);
                     setTimeout(() => playTone(1500, 'square', 0.3, 0.3), 300);
