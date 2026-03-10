@@ -462,9 +462,31 @@
         let soundEnabled = true;
 
         function initAudio() {
-            if (!audioCtx) audioCtx = new AudioContext();
-            if (audioCtx.state === 'suspended') audioCtx.resume();
+            if (!audioCtx) {
+                audioCtx = new AudioContext();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
         }
+
+        // ปลดล็อคเสียงบนมือถือ (แก้ปัญหา iOS/Android ไม่เล่นเสียงจนกว่าจะมีการตอบสนอง)
+        function unlockAudio() {
+            initAudio();
+            if(audioCtx) {
+                // สร้างเสียงเงียบๆ เพื่อปลดล็อค context ทันทีที่แตะจอ
+                const buffer = audioCtx.createBuffer(1, 1, 22050);
+                const source = audioCtx.createBufferSource();
+                source.buffer = buffer;
+                source.connect(audioCtx.destination);
+                source.start(0);
+            }
+            // ปลดล็อคแล้วให้เอา listener ออก
+            document.removeEventListener('touchstart', unlockAudio);
+            document.removeEventListener('click', unlockAudio);
+        }
+        document.addEventListener('touchstart', unlockAudio, { once: true });
+        document.addEventListener('click', unlockAudio, { once: true });
 
         function toggleSound() {
             soundEnabled = !soundEnabled;
@@ -472,7 +494,8 @@
             if (soundEnabled) playSound('key');
         }
 
-        function playTone(freq, type, duration, vol=0.1) {
+        // ปรับ Default Volume เป็น 0.5 เผื่อไว้
+        function playTone(freq, type, duration, vol=0.5) {
             if (!audioCtx || !soundEnabled) return;
             const oscillator = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
@@ -489,27 +512,28 @@
         function playSound(action) {
             initAudio(); 
             if (!soundEnabled) return;
+            // ปรับเพิ่มความดัง (Volume Boost) ตรงตัวเลขตัวที่ 4 ในฟังก์ชัน playTone ให้ดังขึ้น
             switch(action) {
-                case 'key': playTone(1500, 'square', 0.05, 0.03); break;
+                case 'key': playTone(1500, 'square', 0.05, 0.2); break; // เดิม 0.03
                 case 'eat': 
-                    playTone(1200, 'square', 0.1, 0.05);
-                    setTimeout(() => playTone(1800, 'square', 0.15, 0.05), 80);
+                    playTone(1200, 'square', 0.1, 0.4); // เดิม 0.05
+                    setTimeout(() => playTone(1800, 'square', 0.15, 0.4), 80);
                     break;
                 case 'die': 
-                    playTone(300, 'sawtooth', 0.2, 0.1);
-                    setTimeout(() => playTone(250, 'sawtooth', 0.2, 0.1), 150);
-                    setTimeout(() => playTone(200, 'sawtooth', 0.4, 0.1), 300);
+                    playTone(300, 'sawtooth', 0.2, 0.6); // เดิม 0.1
+                    setTimeout(() => playTone(250, 'sawtooth', 0.2, 0.6), 150);
+                    setTimeout(() => playTone(200, 'sawtooth', 0.4, 0.6), 300);
                     break;
                 case 'start': 
-                    playTone(800, 'square', 0.1, 0.05);
-                    setTimeout(() => playTone(1000, 'square', 0.1, 0.05), 100);
-                    setTimeout(() => playTone(1200, 'square', 0.2, 0.05), 200);
+                    playTone(800, 'square', 0.1, 0.3); // เดิม 0.05
+                    setTimeout(() => playTone(1000, 'square', 0.1, 0.3), 100);
+                    setTimeout(() => playTone(1200, 'square', 0.2, 0.3), 200);
                     break;
                 case 'levelup': 
-                    playTone(900, 'square', 0.1, 0.05);
-                    setTimeout(() => playTone(1100, 'square', 0.1, 0.05), 100);
-                    setTimeout(() => playTone(1300, 'square', 0.1, 0.05), 200);
-                    setTimeout(() => playTone(1500, 'square', 0.3, 0.05), 300);
+                    playTone(900, 'square', 0.1, 0.3); // เดิม 0.05
+                    setTimeout(() => playTone(1100, 'square', 0.1, 0.3), 100);
+                    setTimeout(() => playTone(1300, 'square', 0.1, 0.3), 200);
+                    setTimeout(() => playTone(1500, 'square', 0.3, 0.3), 300);
                     break;
             }
         }
