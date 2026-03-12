@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <!-- Meta tags สำหรับทำให้เป็น Web App (ติดตั้งลงหน้าจอโฮมได้) -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
@@ -40,7 +39,6 @@
             font-family: Arial, sans-serif;
             touch-action: manipulation; 
             transition: background-color 0.3s;
-            /* ป้องกันการคลุมดำเลือกข้อความบนมือถือเวลาแตะรัวๆ */
             user-select: none;
             -webkit-user-select: none;
         }
@@ -188,7 +186,7 @@
             font-weight: bold;
             cursor: pointer;
             user-select: none;
-            -webkit-tap-highlight-color: transparent; /* เอาแถบไฮไลต์เวลากดบนมือถือออก */
+            -webkit-tap-highlight-color: transparent; 
             transition: all 0.1s;
         }
         .nav-btn:active {
@@ -266,20 +264,19 @@
             font-size: 12px;
             box-shadow: 2px 2px 0 #222;
             color: #222;
+            z-index: 100;
         }
         .top-btn:active { transform: translate(2px, 2px); box-shadow: none; }
         
         .skin-toggle { left: 15px; }
         .sound-toggle { right: 15px; }
 
-        /* เพิ่มสไตล์ให้ปุ่ม Install ตรงกลาง */
         .install-btn {
             left: 50%;
             transform: translateX(-50%);
             background: #9bbc0f;
             color: #0f380f;
-            display: none; /* ซ่อนไว้ก่อน จะโชว์เมื่อพร้อมติดตั้ง */
-            z-index: 100;
+            display: block; /* แสดงเป็นปุ่มทางลัดให้ Chrome Users ทราบ */
         }
         .install-btn:active { transform: translate(calc(-50% + 2px), 2px); }
     </style>
@@ -316,7 +313,6 @@
                 </div>
             </div>
 
-            <!-- ชุดปุ่มบังคับใต้จอ -->
             <div class="nav-cluster">
                 <button class="nav-btn btn-c" onclick="handleBtn('C')">C</button>
                 <button class="nav-btn btn-navi" onclick="handleBtn('NAVI')"></button>
@@ -333,7 +329,6 @@
     </div>
 
     <script>
-        // --- ระบบสกิน (Themes) ---
         const skins = [
             {
                 name: "PINK", logo: "NOKIA ♥",
@@ -463,14 +458,11 @@
             document.getElementById('skinBtn').innerText = `🎨 ${skin.name}`;
             document.getElementById('brandLogo').innerText = skin.logo;
             
-            // อัปเดต CSS Variables
             for (const [key, value] of Object.entries(skin.css)) {
                 document.documentElement.style.setProperty(key, value);
             }
-            // อัปเดต Theme Color ของมือถือ
             document.getElementById('themeColorMeta').setAttribute('content', skin.themeColor);
             
-            // อัปเดตพิกเซลใน Canvas และวาดใหม่ทันที
             COLOR_PIXEL = skin.pixel;
             if (gameState === 'MENU') drawMenu();
             else draw();
@@ -483,39 +475,28 @@
         const leftInfo = document.getElementById('leftInfo');
         const rightInfo = document.getElementById('rightInfo');
         
-        // --- ระบบเสียง 8-bit ---
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         let audioCtx;
         let soundEnabled = true;
 
         function initAudio() {
-            if (!audioCtx) {
-                audioCtx = new AudioContext();
-            }
-            // ปลุก audio context ถ้ามันหลับอยู่
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
+            if (!audioCtx) audioCtx = new AudioContext();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
         }
 
-        // ฟังก์ชันปลดล็อคเสียงที่ถูกปรับปรุงให้แน่ใจว่าทำงานได้บนทุกเบราว์เซอร์
         function unlockAudio() {
             initAudio();
             if(audioCtx) {
-                // สร้างคลื่นเสียงเงียบสั้นๆ แล้วเล่นทันทีที่สัมผัสจอ
                 const buffer = audioCtx.createBuffer(1, 1, 22050);
                 const source = audioCtx.createBufferSource();
                 source.buffer = buffer;
                 source.connect(audioCtx.destination);
                 source.start(0);
             }
-            
-            // ถอด Event Listeners ออกหลังจากปลดล็อคสำเร็จครั้งแรก
             const unlockEvents = ['touchstart', 'touchend', 'mousedown', 'keydown'];
             unlockEvents.forEach(evt => document.removeEventListener(evt, unlockAudio));
         }
 
-        // ดักจับทุก Event ที่แสดงว่าผู้ใช้กำลังใช้งานหน้าจอ เพื่อปลดล็อคเสียง
         ['touchstart', 'touchend', 'mousedown', 'keydown'].forEach(evt => {
             document.addEventListener(evt, unlockAudio, { once: true });
         });
@@ -528,8 +509,6 @@
 
         function playTone(freq, type, duration, vol=0.5) {
             if (!audioCtx || !soundEnabled) return;
-            
-            // ปลุก audioContext ก่อนเล่นเสียงเสมอเผื่อมือถือตัดการเชื่อมต่อ
             if (audioCtx.state === 'suspended') audioCtx.resume();
 
             const oscillator = audioCtx.createOscillator();
@@ -572,7 +551,6 @@
             }
         }
 
-        // --- ระบบ Game State & Modes ---
         const MODES = ['FREEPLAY', 'TIME_ATTACK', 'CAMPAIGN', 'TWO_PLAYER'];
         let menuIndex = 0;
         let gameState = 'MENU'; 
@@ -889,22 +867,27 @@
             }
         });
 
-        // เปิดเว็บมา โชว์หน้าเมนูก่อนเลย
         drawMenu();
 
-        // --- ระบบ PWA (Progressive Web App - ติดตั้งเป็นแอป) ---
+        // --- ระบบ PWA สำหรับ Google Chrome ---
         
-        // 1. สร้าง Web App Manifest แบบฝังในโค้ด (On-the-fly)
+        // 1. สร้างไอคอนและแปลงเป็น Base64 (เข้ารหัสด้วยวิธีปลอดภัยสำหรับทุกเบราว์เซอร์)
+        const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192"><rect width="100%" height="100%" fill="#8cb878"/><text x="50%" y="50%" font-size="100" text-anchor="middle" dominant-baseline="middle">🐍</text></svg>`;
+        // การใช้ unescape + encodeURIComponent เพื่อแก้ปัญหาตัวอักษรอยู่นอกระยะ Latin1 (แก้ไข Error 'btoa' บน Window)
+        const base64Svg = btoa(unescape(encodeURIComponent(svgIcon)));
+        const iconDataUrl = "data:image/svg+xml;base64," + base64Svg;
+
+        // 2. สร้างไฟล์ Manifest JSON
         const manifestJSON = {
             "name": "Nokia 3310 Snake",
             "short_name": "3310 Snake",
-            "start_url": ".",
+            "start_url": window.location.href || ".",
             "display": "standalone",
             "background_color": "#ffe4e8",
             "theme_color": "#ffe4e8",
             "icons": [
                 {
-                    "src": "data:image/svg+xml;charset=utf-8," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192"><rect width="100%" height="100%" fill="#8cb878"/><text x="50%" y="50%" font-size="100" text-anchor="middle" dominant-baseline="middle">🐍</text></svg>`),
+                    "src": iconDataUrl,
                     "sizes": "192x192",
                     "type": "image/svg+xml",
                     "purpose": "any maskable"
@@ -912,38 +895,46 @@
             ]
         };
         
-        // ฝัง Manifest ลงไปใน <head>
-        const manifestBlob = new Blob([JSON.stringify(manifestJSON)], {type: 'application/json'});
-        const manifestURL = URL.createObjectURL(manifestBlob);
+        // 3. สร้าง Data URI ของ Manifest และฝังลงใน <head> (วิธีนี้ Chrome รองรับ 100%)
+        const manifestStr = JSON.stringify(manifestJSON);
+        const manifestDataUri = "data:application/manifest+json;charset=utf-8," + encodeURIComponent(manifestStr);
+        
         const manifestLink = document.createElement('link');
         manifestLink.rel = 'manifest';
-        manifestLink.href = manifestURL;
+        manifestLink.href = manifestDataUri;
         document.head.appendChild(manifestLink);
 
-        // 2. จัดการปุ่ม Install
+        // --- ระบบจำลอง Service Worker ---
+        if ('serviceWorker' in navigator && window.location.protocol !== 'file:') {
+            const swCode = `
+                self.addEventListener('install', e => self.skipWaiting());
+                self.addEventListener('activate', e => self.clients.claim());
+                self.addEventListener('fetch', e => {}); 
+            `;
+            const swBlob = new Blob([swCode], { type: 'application/javascript' });
+            navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(() => console.log('SW register skipped'));
+        }
+
+        // จัดการปุ่ม Install PWA บนหน้าจอ
         let deferredPrompt;
         const installBtn = document.getElementById('installBtn');
-        // เช็คว่าเปิดแบบเต็มจอ (เป็นแอป) อยู่แล้วหรือไม่
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 
-        // ดักจับ Event เมื่อเบราว์เซอร์พร้อมให้ติดตั้งแอป (Android/Chrome)
+        if (!isStandalone) {
+            installBtn.style.display = 'block'; 
+        }
+
+        // ดักจับเมื่อเบราว์เซอร์ Chrome พร้อมให้ติดตั้งแอป
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            if (!isStandalone) installBtn.style.display = 'block';
         });
 
-        // สำหรับ iOS/Safari จะไม่รองรับ Event ด้านบน เราจึงโชว์ปุ่มไว้ก่อนถ้าเปิดผ่าน Browser
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        if (isIOS && !isStandalone) {
-            installBtn.style.display = 'block';
-        }
-
-        // ฟังก์ชันเมื่อกดปุ่ม Install
+        // ฟังก์ชันสั่งการเมื่อกดปุ่ม INSTALL
         function installPWA() {
             playSound('key');
             if (deferredPrompt) {
-                // แอนดรอยด์: แสดงหน้าต่างติดตั้งของระบบ
+                // หากรันบน Web Server (localhost หรือ https) จะมีหน้าต่างเด้งให้ติดตั้ง
                 deferredPrompt.prompt();
                 deferredPrompt.userChoice.then((choiceResult) => {
                     if (choiceResult.outcome === 'accepted') {
@@ -952,12 +943,15 @@
                     deferredPrompt = null;
                 });
             } else {
-                // iOS หรือเบราว์เซอร์ที่ไม่รองรับ API ติดตั้งอัตโนมัติ ให้ขึ้นข้อความสอน
-                alert("ในการติดตั้งเป็นแอปเพื่อเล่นเสียงเต็มรูปแบบ:\n\n📱 ฝั่ง iOS (Safari):\n1. กดไอคอน 'แชร์' (Share) ด้านล่างจอ\n2. เลือก 'เพิ่มไปยังหน้าจอโฮม' (Add to Home Screen)\n\n🤖 ฝั่ง Android (Chrome):\n1. กดเมนู 3 จุดมุมขวาบน\n2. เลือก 'ติดตั้งแอป' หรือ 'เพิ่มลงหน้าจอโฮม'");
+                // อธิบายให้ละเอียดขึ้นหากเป็น Chrome PC หรือเปิดจากไฟล์ในเครื่องโดยตรง
+                if (window.location.protocol === 'file:') {
+                    alert("⚠️ การติดตั้ง PWA บน Chrome ถูกบล็อก\n\nสาเหตุ: เบราว์เซอร์จะไม่อนุญาตให้ติดตั้งแอปหากคุณเปิดจากไฟล์ในเครื่อง (file://) โดยตรง เพื่อเหตุผลด้านความปลอดภัย\n\n✅ วิธีแก้ไขสำหรับ PC:\n1. อัปโหลดไฟล์นี้ขึ้นเว็บ (เช่น Vercel, GitHub Pages)\n2. หรือรันผ่าน Local Server (ใช้ส่วนเสริม Live Server ใน VS Code)\n\nเมื่อเปิดผ่านเซิร์ฟเวอร์ จะมีหน้าต่างเด้งให้ติดตั้งได้ทันทีครับ!");
+                } else {
+                    alert("💡 วิธีติดตั้งลง Chrome:\n\n1. คลิกที่เมนูจุด 3 จุด (⋮) มุมขวาบนของเบราว์เซอร์ Chrome\n2. เลือกเมนู 'บันทึกและแชร์' (Save and share) -> แล้วคลิก 'ติดตั้งหน้าเพจเป็นแอป' (Install page as app)\n3. หรือสังเกตที่แถบช่องใส่ URL (ที่อยู่เว็บ) จะมีไอคอนสัญลักษณ์หน้าจอคอมพิวเตอร์และลูกศรชี้ลง ให้คลิกที่ไอคอนนั้นเพื่อติดตั้งได้เลยครับ!");
+                }
             }
         }
 
-        // หากติดตั้งสำเร็จ ให้ซ่อนปุ่ม
         window.addEventListener('appinstalled', () => {
             installBtn.style.display = 'none';
         });
