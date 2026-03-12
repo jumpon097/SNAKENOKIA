@@ -271,11 +271,23 @@
         
         .skin-toggle { left: 15px; }
         .sound-toggle { right: 15px; }
+
+        /* เพิ่มสไตล์ให้ปุ่ม Install ตรงกลาง */
+        .install-btn {
+            left: 50%;
+            transform: translateX(-50%);
+            background: #9bbc0f;
+            color: #0f380f;
+            display: none; /* ซ่อนไว้ก่อน จะโชว์เมื่อพร้อมติดตั้ง */
+            z-index: 100;
+        }
+        .install-btn:active { transform: translate(calc(-50% + 2px), 2px); }
     </style>
 </head>
 <body>
     
     <button class="top-btn skin-toggle" id="skinBtn" onclick="nextSkin()">🎨 PINK</button>
+    <button class="top-btn install-btn" id="installBtn" onclick="installPWA()">📲 INSTALL</button>
     <button class="top-btn sound-toggle" id="soundBtn" onclick="toggleSound()">🔊 ON</button>
 
     <div class="nokia-body">
@@ -879,6 +891,76 @@
 
         // เปิดเว็บมา โชว์หน้าเมนูก่อนเลย
         drawMenu();
+
+        // --- ระบบ PWA (Progressive Web App - ติดตั้งเป็นแอป) ---
+        
+        // 1. สร้าง Web App Manifest แบบฝังในโค้ด (On-the-fly)
+        const manifestJSON = {
+            "name": "Nokia 3310 Snake",
+            "short_name": "3310 Snake",
+            "start_url": ".",
+            "display": "standalone",
+            "background_color": "#ffe4e8",
+            "theme_color": "#ffe4e8",
+            "icons": [
+                {
+                    "src": "data:image/svg+xml;charset=utf-8," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192"><rect width="100%" height="100%" fill="#8cb878"/><text x="50%" y="50%" font-size="100" text-anchor="middle" dominant-baseline="middle">🐍</text></svg>`),
+                    "sizes": "192x192",
+                    "type": "image/svg+xml",
+                    "purpose": "any maskable"
+                }
+            ]
+        };
+        
+        // ฝัง Manifest ลงไปใน <head>
+        const manifestBlob = new Blob([JSON.stringify(manifestJSON)], {type: 'application/json'});
+        const manifestURL = URL.createObjectURL(manifestBlob);
+        const manifestLink = document.createElement('link');
+        manifestLink.rel = 'manifest';
+        manifestLink.href = manifestURL;
+        document.head.appendChild(manifestLink);
+
+        // 2. จัดการปุ่ม Install
+        let deferredPrompt;
+        const installBtn = document.getElementById('installBtn');
+        // เช็คว่าเปิดแบบเต็มจอ (เป็นแอป) อยู่แล้วหรือไม่
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+        // ดักจับ Event เมื่อเบราว์เซอร์พร้อมให้ติดตั้งแอป (Android/Chrome)
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            if (!isStandalone) installBtn.style.display = 'block';
+        });
+
+        // สำหรับ iOS/Safari จะไม่รองรับ Event ด้านบน เราจึงโชว์ปุ่มไว้ก่อนถ้าเปิดผ่าน Browser
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        if (isIOS && !isStandalone) {
+            installBtn.style.display = 'block';
+        }
+
+        // ฟังก์ชันเมื่อกดปุ่ม Install
+        function installPWA() {
+            playSound('key');
+            if (deferredPrompt) {
+                // แอนดรอยด์: แสดงหน้าต่างติดตั้งของระบบ
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        installBtn.style.display = 'none';
+                    }
+                    deferredPrompt = null;
+                });
+            } else {
+                // iOS หรือเบราว์เซอร์ที่ไม่รองรับ API ติดตั้งอัตโนมัติ ให้ขึ้นข้อความสอน
+                alert("ในการติดตั้งเป็นแอปเพื่อเล่นเสียงเต็มรูปแบบ:\n\n📱 ฝั่ง iOS (Safari):\n1. กดไอคอน 'แชร์' (Share) ด้านล่างจอ\n2. เลือก 'เพิ่มไปยังหน้าจอโฮม' (Add to Home Screen)\n\n🤖 ฝั่ง Android (Chrome):\n1. กดเมนู 3 จุดมุมขวาบน\n2. เลือก 'ติดตั้งแอป' หรือ 'เพิ่มลงหน้าจอโฮม'");
+            }
+        }
+
+        // หากติดตั้งสำเร็จ ให้ซ่อนปุ่ม
+        window.addEventListener('appinstalled', () => {
+            installBtn.style.display = 'none';
+        });
 
     </script>
 </body>
