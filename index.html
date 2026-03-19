@@ -276,7 +276,7 @@
             transform: translateX(-50%);
             background: #9bbc0f;
             color: #0f380f;
-            display: block; /* แสดงเป็นปุ่มทางลัดให้ Chrome Users ทราบ */
+            display: block; 
         }
         .install-btn:active { transform: translate(calc(-50% + 2px), 2px); }
     </style>
@@ -480,8 +480,12 @@
         let soundEnabled = true;
 
         function initAudio() {
-            if (!audioCtx) audioCtx = new AudioContext();
-            if (audioCtx.state === 'suspended') audioCtx.resume();
+            if (!audioCtx) {
+                audioCtx = new AudioContext();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
         }
 
         function unlockAudio() {
@@ -871,13 +875,10 @@
 
         // --- ระบบ PWA สำหรับ Google Chrome ---
         
-        // 1. สร้างไอคอนและแปลงเป็น Base64 (เข้ารหัสด้วยวิธีปลอดภัยสำหรับทุกเบราว์เซอร์)
         const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192"><rect width="100%" height="100%" fill="#8cb878"/><text x="50%" y="50%" font-size="100" text-anchor="middle" dominant-baseline="middle">🐍</text></svg>`;
-        // การใช้ unescape + encodeURIComponent เพื่อแก้ปัญหาตัวอักษรอยู่นอกระยะ Latin1 (แก้ไข Error 'btoa' บน Window)
         const base64Svg = btoa(unescape(encodeURIComponent(svgIcon)));
         const iconDataUrl = "data:image/svg+xml;base64," + base64Svg;
 
-        // 2. สร้างไฟล์ Manifest JSON
         const manifestJSON = {
             "name": "Nokia 3310 Snake",
             "short_name": "3310 Snake",
@@ -895,7 +896,6 @@
             ]
         };
         
-        // 3. สร้าง Data URI ของ Manifest และฝังลงใน <head> (วิธีนี้ Chrome รองรับ 100%)
         const manifestStr = JSON.stringify(manifestJSON);
         const manifestDataUri = "data:application/manifest+json;charset=utf-8," + encodeURIComponent(manifestStr);
         
@@ -904,18 +904,41 @@
         manifestLink.href = manifestDataUri;
         document.head.appendChild(manifestLink);
 
-        // --- ระบบจำลอง Service Worker ---
+        // --- ระบบจำลอง Service Worker และ Offline Cache ---
         if ('serviceWorker' in navigator && window.location.protocol !== 'file:') {
+            const pageUrl = window.location.href.split('?')[0]; // ใช้ URL หน้าปัจจุบันสำหรับอ้างอิง Offline Cache
             const swCode = `
-                self.addEventListener('install', e => self.skipWaiting());
-                self.addEventListener('activate', e => self.clients.claim());
-                self.addEventListener('fetch', e => {}); 
+                const CACHE_NAME = 'nokia-snake-v1';
+                const urlsToCache = ['${pageUrl}'];
+
+                self.addEventListener('install', event => {
+                    self.skipWaiting();
+                    event.waitUntil(
+                        caches.open(CACHE_NAME)
+                            .then(cache => cache.addAll(urlsToCache))
+                    );
+                });
+
+                self.addEventListener('activate', event => {
+                    event.waitUntil(self.clients.claim());
+                });
+
+                self.addEventListener('fetch', event => {
+                    event.respondWith(
+                        caches.match(event.request)
+                            .then(response => {
+                                if (response) {
+                                    return response; // คืนค่าจาก Cache ถ้าเน็ตตัด
+                                }
+                                return fetch(event.request); // ถ้ามีเน็ตก็โหลดปกติ
+                            }).catch(() => caches.match('${pageUrl}')) // โหลดหน้าหลักถ้าเน็ตหลุด
+                    );
+                });
             `;
             const swBlob = new Blob([swCode], { type: 'application/javascript' });
             navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(() => console.log('SW register skipped'));
         }
 
-        // จัดการปุ่ม Install PWA บนหน้าจอ
         let deferredPrompt;
         const installBtn = document.getElementById('installBtn');
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
@@ -924,17 +947,14 @@
             installBtn.style.display = 'block'; 
         }
 
-        // ดักจับเมื่อเบราว์เซอร์ Chrome พร้อมให้ติดตั้งแอป
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
         });
 
-        // ฟังก์ชันสั่งการเมื่อกดปุ่ม INSTALL
         function installPWA() {
             playSound('key');
             if (deferredPrompt) {
-                // หากรันบน Web Server (localhost หรือ https) จะมีหน้าต่างเด้งให้ติดตั้ง
                 deferredPrompt.prompt();
                 deferredPrompt.userChoice.then((choiceResult) => {
                     if (choiceResult.outcome === 'accepted') {
@@ -943,7 +963,6 @@
                     deferredPrompt = null;
                 });
             } else {
-                // อธิบายให้ละเอียดขึ้นหากเป็น Chrome PC หรือเปิดจากไฟล์ในเครื่องโดยตรง
                 if (window.location.protocol === 'file:') {
                     alert("⚠️ การติดตั้ง PWA บน Chrome ถูกบล็อก\n\nสาเหตุ: เบราว์เซอร์จะไม่อนุญาตให้ติดตั้งแอปหากคุณเปิดจากไฟล์ในเครื่อง (file://) โดยตรง เพื่อเหตุผลด้านความปลอดภัย\n\n✅ วิธีแก้ไขสำหรับ PC:\n1. อัปโหลดไฟล์นี้ขึ้นเว็บ (เช่น Vercel, GitHub Pages)\n2. หรือรันผ่าน Local Server (ใช้ส่วนเสริม Live Server ใน VS Code)\n\nเมื่อเปิดผ่านเซิร์ฟเวอร์ จะมีหน้าต่างเด้งให้ติดตั้งได้ทันทีครับ!");
                 } else {
